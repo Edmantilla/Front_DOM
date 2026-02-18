@@ -1,331 +1,212 @@
 /**
- * ============================================
- * EJERCICIO DE MANIPULACIÓN DEL DOM
- * ============================================
+ * Archivo Principal: script.js
+ * Objetivo: Controlar la lógica de la aplicación, manejar eventos y conectar con la API.
  * 
- * Objetivo: Aplicar conceptos del DOM para seleccionar elementos,
- * responder a eventos y crear nuevos elementos dinámicamente.
+ * IMPORTACIONES:
+ * Traemos las funciones que creamos en la carpeta 'components'.
+ * - armarUsuario: Función para mostrar los datos del usuario.
+ * - armarTareas: Función para mostrar la lista de tareas.
  * 
- * Autor: [Tu nombre aquí]
- * Fecha: [Fecha actual]
- * ============================================
+ * Usamos "./components/index.js" para mantener el código ordenado.
  */
+import { armarUsuario, armarTareas } from "./components/index.js";
 
-// ============================================
-// 1. SELECCIÓN DE ELEMENTOS DEL DOM
-// ============================================
+// ==========================================
+// REFERENCIAS AL DOM (HTML)
+// ==========================================
+// Aquí guardamos en variables los elementos de la página que vamos a manipular.
+// Usamos 'const' porque la referencia al elemento no va a cambiar.
 
-/**
- * Seleccionamos los elementos del DOM que necesitamos manipular.
- * Usamos getElementById para obtener referencias a los elementos únicos.
- */
+const formularioBusqueda = document.getElementById("searchForm");
+const entradaIdUsuario = document.getElementById("userId");
+const errorIdUsuario = document.getElementById("userIdError");
 
-// Formulario
-const messageForm = document.getElementById('messageForm');
+// Secciones que mostramos u ocultamos
+const seccionInfoUsuario = document.getElementById("userInfoSection");
+const contenedorInfoUsuario = document.getElementById("userInfoContainer");
 
-// Campos de entrada
-const userNameInput = document.getElementById('userName');
-const userMessageInput = document.getElementById('userMessage');
+const seccionFormularioTarea = document.getElementById("taskFormSection");
+const formularioTarea = document.getElementById("taskForm");
 
-// Botón de envío
-const submitBtn = document.getElementById('submitBtn');
+const seccionListaTareas = document.getElementById("tasksListSection");
+const contenedorTareas = document.getElementById("tasksContainer");
 
-// Elementos para mostrar errores
-const userNameError = document.getElementById('userNameError');
-const userMessageError = document.getElementById('userMessageError');
+// ==========================================
+// VARIABLES DE ESTADO
+// ==========================================
+// Usamos 'let' porque el valor de esta variable va a cambiar durante el uso de la app.
+// Inicialmente es null porque no hemos buscado a nadie.
+let usuarioActual = null;
 
-// Contenedor donde se mostrarán los mensajes
-const messagesContainer = document.getElementById('messagesContainer');
+// ==========================================
+// EVENTO 1: BUSCAR USUARIO
+// ==========================================
+// Escuchamos cuando el usuario envía el formulario de búsqueda (click en Buscar o Enter).
+formularioBusqueda.addEventListener("submit", async (evento) => {
+    // 1. Evitamos que la página se recargue (comportamiento por defecto de los formularios).
+    evento.preventDefault();
 
-// Estado vacío (mensaje que se muestra cuando no hay mensajes)
-const emptyState = document.getElementById('emptyState');
+    // 2. Obtenemos el valor que escribió el usuario en el campo de texto.
+    const idUsuario = entradaIdUsuario.value;
 
-// Contador de mensajes
-const messageCount = document.getElementById('messageCount');
-
-// Variable para llevar el conteo de mensajes
-let totalMessages = 0;
-
-
-// ============================================
-// 2. FUNCIONES AUXILIARES
-// ============================================
-
-/**
- * Valida que un campo no esté vacío ni contenga solo espacios en blanco
- * @param {string} value - El valor a validar
- * @returns {boolean} - true si es válido, false si no lo es
- */
-function isValidInput(value) {
-    // TODO: Implementar validación
-    // Pista: usa trim() para eliminar espacios al inicio y final
-    // Retorna true si después de trim() el string tiene longitud > 0
-}
-
-/**
- * Muestra un mensaje de error en un elemento específico
- * @param {HTMLElement} errorElement - Elemento donde mostrar el error
- * @param {string} message - Mensaje de error a mostrar
- */
-function showError(errorElement, message) {
-    // TODO: Implementar función para mostrar error
-    // Pista: asigna el mensaje al textContent del elemento
-}
-
-/**
- * Limpia el mensaje de error de un elemento específico
- * @param {HTMLElement} errorElement - Elemento del que limpiar el error
- */
-function clearError(errorElement) {
-    // TODO: Implementar función para limpiar error
-    // Pista: asigna un string vacío al textContent
-}
-
-/**
- * Valida todos los campos del formulario
- * @returns {boolean} - true si todos los campos son válidos, false si alguno no lo es
- */
-function validateForm() {
-    // TODO: Implementar validación completa del formulario
-    // 1. Obtener los valores de los inputs usando .value
-    // 2. Crear una variable para saber si el formulario es válido (inicialmente true)
-    // 3. Validar el campo de nombre de usuario
-    //    - Si no es válido, mostrar error y cambiar la variable a false
-    //    - Si es válido, limpiar el error
-    // 4. Validar el campo de mensaje
-    //    - Si no es válido, mostrar error y cambiar la variable a false
-    //    - Si es válido, limpiar el error
-    // 5. Retornar si el formulario es válido o no
-    
-    // Ejemplo de estructura:
-    /*
-    const userName = userNameInput.value;
-    const userMessage = userMessageInput.value;
-    let isValid = true;
-    
-    // Validar nombre
-    if (!isValidInput(userName)) {
-        // Mostrar error
-        // Agregar clase 'error' al input
-        isValid = false;
-    } else {
-        // Limpiar error
-        // Remover clase 'error' del input
+    // 3. Validación básica: Si el campo está vacío, mostramos error y paramos.
+    if (idUsuario === "") {
+        mostrarError("Por favor ingresa un número de ID");
+        return; // 'return' detiene la ejecución de la función aquí.
     }
-    
-    // Validar mensaje (estructura similar)
-    
-    return isValid;
-    */
-}
 
-/**
- * Obtiene la fecha y hora actual formateada
- * @returns {string} - Fecha y hora en formato legible
- */
-function getCurrentTimestamp() {
-    const now = new Date();
-    const options = { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    };
-    return now.toLocaleDateString('es-ES', options);
-}
+    try {
+        // 4. Hacemos la petición a la API (simulando una base de datos real).
+        // Usamos 'await' para esperar a que el servidor responda antes de seguir.
+        const respuesta = await fetch(`https://jsonplaceholder.typicode.com/users/${idUsuario}`);
 
-/**
- * Obtiene las iniciales de un nombre
- * @param {string} name - Nombre completo
- * @returns {string} - Iniciales en mayúsculas
- */
-function getInitials(name) {
-    // TODO: Implementar función para obtener iniciales
-    // Pista: 
-    // 1. Separar el nombre por espacios usando split(' ')
-    // 2. Tomar la primera letra de cada palabra
-    // 3. Unirlas y convertirlas a mayúsculas
-    // 4. Si solo hay una palabra, retornar las dos primeras letras
-}
+        // 5. Verificamos si el servidor nos respondió con un código "OK" (200).
+        if (respuesta.ok) {
+            // Convertimos la respuesta cruda a un objeto JSON que JavaScript entienda.
+            usuarioActual = await respuesta.json();
 
-/**
- * Actualiza el contador de mensajes
- */
-function updateMessageCount() {
-    // TODO: Implementar actualización del contador
-    // Pista: Usa template literals para crear el texto
-    // Formato: "X mensaje(s)" o "X mensajes"
-}
+            // --- MANIPULACIÓN DEL DOM ---
 
-/**
- * Oculta el estado vacío (mensaje cuando no hay mensajes)
- */
-function hideEmptyState() {
-    // TODO: Implementar función para ocultar el estado vacío
-    // Pista: Agrega la clase 'hidden' al elemento emptyState
-}
+            // A. Mostrar información del usuario usando nuestro componente importado.
+            armarUsuario(contenedorInfoUsuario, usuarioActual);
 
-/**
- * Muestra el estado vacío (mensaje cuando no hay mensajes)
- */
-function showEmptyState() {
-    // TODO: Implementar función para mostrar el estado vacío
-    // Pista: Remueve la clase 'hidden' del elemento emptyState
-}
+            // B. Hacer visibles las secciones que estaban ocultas (.hidden).
+            seccionInfoUsuario.classList.remove("hidden");
+            seccionFormularioTarea.classList.remove("hidden");
+            seccionListaTareas.classList.remove("hidden");
 
+            // C. Limpiar cualquier mensaje de error anterior.
+            errorIdUsuario.textContent = "";
 
-// ============================================
-// 3. CREACIÓN DE ELEMENTOS
-// ============================================
+            // D. Cargar las tareas que este usuario ya tiene guardadas.
+            cargarTareasDelUsuario(idUsuario);
 
-/**
- * Crea un nuevo elemento de mensaje en el DOM
- * @param {string} userName - Nombre del usuario
- * @param {string} message - Contenido del mensaje
- */
-function createMessageElement(userName, message) {
-    // TODO: Implementar la creación de un nuevo mensaje
-    
-    // PASO 1: Crear el contenedor principal del mensaje
-    // Pista: document.createElement('div')
-    // Asignar la clase 'message-card'
-    
-    // PASO 2: Crear la estructura HTML del mensaje
-    // Puedes usar innerHTML con la siguiente estructura:
-    /*
-    <div class="message-card__header">
-        <div class="message-card__user">
-            <div class="message-card__avatar">[INICIALES]</div>
-            <span class="message-card__username">[NOMBRE]</span>
-        </div>
-        <span class="message-card__timestamp">[FECHA]</span>
-    </div>
-    <div class="message-card__content">[MENSAJE]</div>
-    */
-    
-    // PASO 3: Insertar el nuevo elemento en el contenedor de mensajes
-    // Pista: messagesContainer.appendChild(nuevoElemento)
-    // O usar insertBefore para agregarlo al principio
-    
-    // PASO 4: Incrementar el contador de mensajes
-    
-    // PASO 5: Actualizar el contador visual
-    
-    // PASO 6: Ocultar el estado vacío si está visible
-}
+        } else {
+            // Si la respuesta no fue OK (ej: error 404), lanzamos un error manual.
+            throw new Error("Usuario no encontrado");
+        }
 
-
-// ============================================
-// 4. MANEJO DE EVENTOS
-// ============================================
-
-/**
- * Maneja el evento de envío del formulario
- * @param {Event} event - Evento del formulario
- */
-function handleFormSubmit(event) {
-    // TODO: Implementar el manejador del evento submit
-    
-    // PASO 1: Prevenir el comportamiento por defecto del formulario
-    // Pista: event.preventDefault()
-    
-    // PASO 2: Validar el formulario
-    // Si no es válido, detener la ejecución (return)
-    
-    // PASO 3: Obtener los valores de los campos
-    
-    // PASO 4: Crear el nuevo elemento de mensaje
-    // Llamar a createMessageElement con los valores obtenidos
-    
-    // PASO 5: Limpiar el formulario
-    // Pista: messageForm.reset()
-    
-    // PASO 6: Limpiar los errores
-    
-    // PASO 7: Opcional - Enfocar el primer campo para facilitar agregar otro mensaje
-    // Pista: userNameInput.focus()
-}
-
-/**
- * Limpia los errores cuando el usuario empieza a escribir
- */
-function handleInputChange() {
-    // TODO: Implementar limpieza de errores al escribir
-    // Esta función se ejecuta cuando el usuario escribe en un campo
-    // Debe limpiar el error de ese campo específico
-}
-
-
-// ============================================
-// 5. REGISTRO DE EVENTOS
-// ============================================
-
-/**
- * Aquí registramos todos los event listeners
- */
-
-// TODO: Registrar el evento 'submit' en el formulario
-// Pista: messageForm.addEventListener('submit', handleFormSubmit);
-
-// TODO: Registrar eventos 'input' en los campos para limpiar errores al escribir
-// Pista: userNameInput.addEventListener('input', handleInputChange);
-// Pista: userMessageInput.addEventListener('input', handleInputChange);
-
-
-// ============================================
-// 6. REFLEXIÓN Y DOCUMENTACIÓN
-// ============================================
-
-/**
- * PREGUNTAS DE REFLEXIÓN:
- * 
- * 1. ¿Qué elemento del DOM estás seleccionando?
- *    R: 
- * 
- * 2. ¿Qué evento provoca el cambio en la página?
- *    R: 
- * 
- * 3. ¿Qué nuevo elemento se crea?
- *    R: 
- * 
- * 4. ¿Dónde se inserta ese elemento dentro del DOM?
- *    R: 
- * 
- * 5. ¿Qué ocurre en la página cada vez que repites la acción?
- *    R: 
- */
-
-
-// ============================================
-// 7. INICIALIZACIÓN (OPCIONAL)
-// ============================================
-
-/**
- * Esta función se ejecuta cuando el DOM está completamente cargado
- */
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ DOM completamente cargado');
-    console.log('📝 Aplicación de registro de mensajes iniciada');
-    
-    // Aquí puedes agregar cualquier inicialización adicional
-    // Por ejemplo, cargar mensajes guardados del localStorage
+    } catch (error) {
+        // 'catch' captura cualquier error que haya ocurrido en el bloque 'try'.
+        console.error(error); // Mostramos el error en la consola para depurar.
+        mostrarError("Usuario no encontrado en el sistema");
+        ocultarSecciones(); // Ocultamos todo para no mostrar info errónea.
+    }
 });
 
+// ==========================================
+// EVENTO 2: AGREGAR NUEVA TAREA
+// ==========================================
+formularioTarea.addEventListener("submit", async (evento) => {
+    evento.preventDefault(); // Prevenir recarga
 
-// ============================================
-// 8. FUNCIONALIDADES ADICIONALES (BONUS)
-// ============================================
+    // Seguridad: Si por alguna razón no hay usuario cargado, no hacemos nada.
+    if (usuarioActual === null) {
+        return;
+    }
 
-/**
- * RETOS ADICIONALES OPCIONALES:
- * 
- * 1. Agregar un botón para eliminar mensajes individuales
- * 2. Implementar localStorage para persistir los mensajes
- * 3. Agregar un contador de caracteres en el textarea
- * 4. Implementar un botón para limpiar todos los mensajes
- * 5. Agregar diferentes colores de avatar según el nombre del usuario
- * 6. Permitir editar mensajes existentes
- * 7. Agregar emojis o reacciones a los mensajes
- * 8. Implementar búsqueda/filtrado de mensajes
- */
+    // 1. Obtenemos los valores de los inputs del formulario de tareas.
+    const titulo = document.getElementById("taskTitle").value;
+    const descripcion = document.getElementById("taskBody").value;
+    const estadoSeleccionado = document.getElementById("taskCompleted").value;
+
+    // 2. Convertimos el string "true"/"false" del select a un booleano real (true/false).
+    let estaCompletada = false;
+    if (estadoSeleccionado === "true") {
+        estaCompletada = true;
+    }
+
+    // 3. Validación: El título es obligatorio.
+    if (titulo === "") {
+        alert("El título es obligatorio");
+        return;
+    }
+
+    // 4. Creamos el objeto de la nueva tarea con la estructura que espera la API.
+    const nuevaTarea = {
+        title: titulo,
+        body: descripcion,
+        completed: estaCompletada,
+        userId: usuarioActual.id // Asociamos la tarea al ID del usuario actual.
+    };
+
+    try {
+        // 5. Configuración para enviar datos (POST) a la API.
+        const opciones = {
+            method: 'POST', // Método HTTP para crear.
+            body: JSON.stringify(nuevaTarea), // Convertimos nuestro objeto a texto JSON.
+            headers: {
+                'Content-type': 'application/json; charset=UTF-8', // Le decimos al servidor que enviamos JSON.
+            },
+        };
+
+        // 6. Enviamos la petición.
+        const respuesta = await fetch('https://jsonplaceholder.typicode.com/todos', opciones);
+
+        // 7. Obtenemos la confirmación de la API.
+        // Nota: JSONPlaceholder simula la creación, devuelve la tarea con un ID falso (siempre 201).
+        const tareaCreada = await respuesta.json();
+
+        console.log("Tarea creada con éxito (simulado):", tareaCreada);
+
+        // 8. Actualizamos la interfaz visualmente.
+        // Como 'armarTareas' espera una lista (array), metemos nuestra nueva tarea en un array [].
+        const listaParaAgregar = [nuevaTarea];
+        armarTareas(contenedorTareas, listaParaAgregar);
+
+        // 9. Limpiamos el formulario para dejarlo listo para la siguiente tarea.
+        formularioTarea.reset();
+
+    } catch (error) {
+        console.error("Error al crear tarea:", error);
+        alert("Hubo un error al guardar la tarea");
+    }
+});
+
+// ==========================================
+// FUNCIÓN 3: CARGAR TAREAS EXISTENTES
+// ==========================================
+async function cargarTareasDelUsuario(idUsuario) {
+    // Limpiamos la lista visual antes de cargar nuevas.
+    contenedorTareas.innerHTML = '';
+
+    try {
+        // Pedimos las tareas filtradas por el ID del usuario (?userId=...)
+        const respuesta = await fetch(`https://jsonplaceholder.typicode.com/todos?userId=${idUsuario}`);
+        const listaDeTareas = await respuesta.json();
+
+        // Para este ejercicio, mostramos solo las primeras 5 tareas para no llenar la pantalla.
+        // .slice(0, 5) corta el array y toma desde el índice 0 hasta el 5.
+        const primerasTareas = listaDeTareas.slice(0, 5);
+
+        // Usamos nuestro componente para pintar las tareas en el HTML.
+        armarTareas(contenedorTareas, primerasTareas);
+
+    } catch (error) {
+        console.error("Error cargando tareas:", error);
+    }
+}
+
+// ==========================================
+// FUNCIONES DE APOYO (HELPERS)
+// ==========================================
+
+// Muestra el mensaje de error debajo del campo de ID
+function mostrarError(mensaje) {
+    errorIdUsuario.textContent = mensaje;
+    ocultarSecciones();
+}
+
+// Oculta todas las secciones de información y resetea el estado
+function ocultarSecciones() {
+    seccionInfoUsuario.classList.add("hidden");
+    seccionFormularioTarea.classList.add("hidden");
+    seccionListaTareas.classList.add("hidden");
+
+    // Limpiamos el HTML interno para que no quede basura visual
+    contenedorInfoUsuario.innerHTML = "";
+    contenedorTareas.innerHTML = "";
+
+    // Reseteamos la variable global
+    usuarioActual = null;
+}
