@@ -3,10 +3,13 @@ import { armarUsuario } from "../ui/index.js";
 import { cargarTareasDelUsuario } from "./tareaService.js";
 
 /**
- * Servicio para procesar la búsqueda de un usuario
- * Coordina la llamada a la API y la actualización de la UI
+ * Servicio para procesar la búsqueda de un usuario.
+ * Coordina la llamada a la API, la actualización de la UI y la carga de tareas.
+ * @param {string|number} idUsuario - ID del usuario a buscar.
+ * @param {Object} domElements - Referencias al DOM.
+ * @param {Function} renderFn - Función de render con filtros para pasarla a cargarTareasDelUsuario.
  */
-export const buscarYMostrarUsuario = async (idUsuario, domElements) => {
+export const buscarYMostrarUsuario = async (idUsuario, domElements, renderFn) => {
     const {
         contenedorInfoUsuario,
         seccionInfoUsuario,
@@ -30,8 +33,8 @@ export const buscarYMostrarUsuario = async (idUsuario, domElements) => {
         seccionListaTareas.classList.remove("hidden");
         errorIdUsuario.textContent = "";
 
-        // Lógica intermedia para cargar tareas
-        await cargarTareasDelUsuario(idUsuario, contenedorTareas);
+        // Cargar tareas pasando la función render con filtros
+        await cargarTareasDelUsuario(idUsuario, contenedorTareas, renderFn);
 
         return usuario;
     } catch (error) {

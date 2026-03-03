@@ -62,8 +62,9 @@
                     <div class="form__group">
                         <label for="taskCompleted" class="form__label">Estado</label>
                         <select id="taskCompleted" class="form__input">
-                            <option value="false">Pendiente</option>
-                            <option value="true">Completada</option>
+                            <option value="false">🕐 Pendiente</option>
+                            <option value="in-progress">⚡ En proceso</option>
+                            <option value="true">✅ Completada</option>
                         </select>
                     </div>
 
@@ -73,6 +74,11 @@
                     </button>
                 </form>
             </div>
+        </section>
+
+        <!-- Filtros de Tareas (Oculto inicialmente) -->
+        <section id="filterSection" class="filter-section hidden">
+            <div id="filterContainer"></div>
         </section>
 
         <!-- Lista de Tareas -->
@@ -85,6 +91,7 @@
                 <!-- Las tareas se agregarán aquí dinámicamente -->
             </div>
         </section>
+
 
         <!-- Footer informativo -->
         <footer class="footer">

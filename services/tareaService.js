@@ -1,27 +1,42 @@
 import { getTareasByUserId, createTarea, deleteTarea, updateTarea } from "../api/index.js";
 import { armarTareas } from "../ui/index.js";
+import { guardarTareas, agregarTarea, actualizarTareaEnEstado, eliminarTareaDelEstado, obtenerTareasFiltradas } from "./filterService.js";
 
 /**
- * Servicio para cargar y mostrar tareas
+ * Servicio para cargar y mostrar tareas.
+ * Almacena las tareas en filterService (fuente de verdad) y delega el render.
  */
-export const cargarTareasDelUsuario = async (idUsuario, contenedorTareas) => {
+export const cargarTareasDelUsuario = async (idUsuario, contenedorTareas, renderFn) => {
     contenedorTareas.innerHTML = '';
     try {
-        const primerosTareas = await getTareasByUserId(idUsuario);
-        armarTareas(contenedorTareas, primerosTareas);
+        const tareas = await getTareasByUserId(idUsuario);
+        guardarTareas(tareas);          // guardar en filterService
+        if (renderFn) {
+            renderFn();                 // usar la función de render con filtros activos
+        } else {
+            armarTareas(contenedorTareas, tareas);
+        }
     } catch (error) {
         console.error("Error cargando tareas:", error);
     }
 };
 
 /**
- * Servicio para crear una nueva tarea
+ * Servicio para crear una nueva tarea.
+ * Agrega la tarea al estado de filterService y re-renderiza.
  */
-export const procesarCreacionTarea = async (nuevaTarea, contenedorTareas, formularioTarea) => {
+export const procesarCreacionTarea = async (nuevaTarea, contenedorTareas, formularioTarea, renderFn) => {
     try {
         const tareaCreada = await createTarea(nuevaTarea);
-        armarTareas(contenedorTareas, [tareaCreada]);
+        // Preservar el status (en-proceso si fue seleccionado)
+        tareaCreada.status = nuevaTarea.status || (tareaCreada.completed ? 'completed' : 'pending');
+        agregarTarea(tareaCreada);      // agregar a filterService
         formularioTarea.reset();
+        if (renderFn) {
+            renderFn();                 // re-renderizar con filtros activos
+        } else {
+            armarTareas(contenedorTareas, [tareaCreada]);
+        }
         return true;
     } catch (error) {
         console.error("Error al crear tarea:", error);
@@ -31,13 +46,20 @@ export const procesarCreacionTarea = async (nuevaTarea, contenedorTareas, formul
 };
 
 /**
- * Servicio para actualizar una tarea existente
+ * Servicio para actualizar una tarea existente.
  */
 export const procesarActualizacionTarea = async (tareaActualId, datosActualizados, helpers) => {
     try {
         const tareaActualizada = await updateTarea(tareaActualId, datosActualizados);
+        // Preservar el status personalizado si viene en datosActualizados
+        tareaActualizada.status = datosActualizados.status || (tareaActualizada.completed ? 'completed' : 'pending');
+        actualizarTareaEnEstado(tareaActualId, tareaActualizada); // actualizar en filterService
         helpers.actualizarTarjetaEnDOM(tareaActualId, tareaActualizada);
         helpers.resetearFormularioAModoCrear();
+        // Re-renderizar para aplicar filtros actuales
+        if (helpers.renderFn) {
+            helpers.renderFn();
+        }
         return true;
     } catch (error) {
         console.error("Error actualizando tarea:", error);
@@ -47,16 +69,20 @@ export const procesarActualizacionTarea = async (tareaActualId, datosActualizado
 };
 
 /**
- * Servicio para eliminar una tarea
+ * Servicio para eliminar una tarea.
  */
-export const procesarEliminacionTarea = async (idTarea, tarjetaDOM) => {
+export const procesarEliminacionTarea = async (idTarea, tarjetaDOM, renderFn) => {
     const confirmar = confirm("¿Estás segura de que deseas eliminar esta tarea?");
     if (!confirmar) return;
 
     try {
         const eliminado = await deleteTarea(idTarea);
         if (eliminado) {
+            eliminarTareaDelEstado(idTarea); // eliminar de filterService
             tarjetaDOM.remove();
+            if (renderFn) {
+                renderFn();                  // re-renderizar badge de conteo
+            }
         } else {
             alert("No se pudo eliminar la tarea");
         }

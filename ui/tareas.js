@@ -11,9 +11,15 @@ export const armarTareas = (elemento, listaTareas) => {
     const fragmento = document.createDocumentFragment();
 
     listaTareas.forEach(tarea => {
+        // Determinar el estado real de la tarea
+        // Prioridad: campo propio 'status' (para tareas "en proceso"), si no: derivado de 'completed'
+        const estadoReal = tarea.status || (tarea.completed ? 'completed' : 'pending');
+
         // PASO 1: Crear el contenedor de la tarjeta de la tarea
         const divTarea = document.createElement('div');
         divTarea.className = 'message-card';
+        divTarea.setAttribute('data-status', estadoReal);           // para filtros por estado
+        divTarea.setAttribute('data-user-id', tarea.userId || ''); // para filtros por usuario
 
         // PASO 2: Crear la cabecera (Título y Estado)
         const divCabecera = document.createElement('div');
@@ -24,16 +30,19 @@ export const armarTareas = (elemento, listaTareas) => {
         titulo.textContent = tarea.title;
         titulo.className = 'message-author';
 
-        // Estado (Completada o Pendiente)
+        // Estado (Completada | En proceso | Pendiente)
         const spanEstado = document.createElement('span');
 
-        if (tarea.completed) {
+        if (estadoReal === 'completed') {
             spanEstado.className = 'status-completed';
-            spanEstado.textContent = 'Completada';
+            spanEstado.textContent = '✅ Completada';
             spanEstado.style.color = 'green';
+        } else if (estadoReal === 'in-progress') {
+            spanEstado.className = 'status-in-progress';
+            spanEstado.textContent = '⚡ En proceso';
         } else {
             spanEstado.className = 'status-pending';
-            spanEstado.textContent = 'Pendiente';
+            spanEstado.textContent = '🕐 Pendiente';
             spanEstado.style.color = 'orange';
         }
 

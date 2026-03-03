@@ -1,8 +1,11 @@
 /**
- * Archivo Principal: script.js
+ * Archivo Principal: main.js
  * Objetivo: Controlar la lógica de la aplicación, manejar eventos y conectar con la API y Servicios.
  */
 import { buscarYMostrarUsuario, procesarCreacionTarea, procesarActualizacionTarea, procesarEliminacionTarea } from "./services/index.js";
+import { armarFiltros } from "./ui/index.js";
+import { armarTareas } from "./ui/index.js";
+import { setFiltroEstado, setFiltroUsuario, getFiltroEstado, getFiltroUsuario, obtenerTareasFiltradas, resetearFiltros } from "./services/index.js";
 
 // ==========================================
 // REFERENCIAS AL DOM (HTML)
@@ -21,15 +24,84 @@ const formularioTarea = document.getElementById("taskForm");
 const seccionListaTareas = document.getElementById("tasksListSection");
 const contenedorTareas = document.getElementById("tasksContainer");
 
+// Sección de filtros
+const seccionFiltros = document.getElementById("filterSection");
+const contenedorFiltros = document.getElementById("filterContainer");
+
 // ==========================================
 // VARIABLES DE ESTADO Y OBJETOS DEL DOM
 // ==========================================
-let usuarioActual = null; // Guarda el objeto del usuario logueado actualmente
-let modoEdicion = false; // Bandera: true=editando tarea, false=creando tarea nueva
-let tareaActualId = null; // Guarda el ID de la tarea que se está editando
+let usuarioActual = null;  // Guarda el objeto del usuario logueado actualmente
+let modoEdicion = false;   // Bandera: true=editando tarea, false=creando tarea nueva
+let tareaActualId = null;  // Guarda el ID de la tarea que se está editando
 
 // Funciones de utilidad y referencias DOM que necesitan los servicios
-const domElements = {contenedorInfoUsuario,seccionInfoUsuario,seccionFormularioTarea,seccionListaTareas,errorIdUsuario,contenedorTareas,mostrarError,ocultarSecciones};
+const domElements = { contenedorInfoUsuario, seccionInfoUsuario, seccionFormularioTarea, seccionListaTareas, errorIdUsuario, contenedorTareas, mostrarError, ocultarSecciones };
+
+// ==========================================
+// FUNCIÓN CENTRAL: RENDERIZAR CON FILTROS
+// ==========================================
+
+/**
+ * Función de re-render central. Lee las tareas desde filterService
+ * (ya filtradas según filtros activos) y las dibuja en el contenedor.
+ * Actualiza también el badge informativo de resultados.
+ */
+function renderTareasFiltradas() {
+    const tareasFiltradas = obtenerTareasFiltradas();
+
+    // Efecto visual de transición suave
+    contenedorTareas.classList.add('filtering');
+
+    setTimeout(() => {
+        contenedorTareas.innerHTML = '';
+        contenedorTareas.classList.remove('filtering');
+
+        if (tareasFiltradas.length === 0) {
+            // Mostrar estado vacío
+            const divVacio = document.createElement('div');
+            divVacio.className = 'filter-no-results';
+
+            const iconoVacio = document.createElement('div');
+            iconoVacio.className = 'filter-no-results__icon';
+            iconoVacio.textContent = '🔍';
+
+            const textoVacio = document.createElement('p');
+            textoVacio.className = 'filter-no-results__text';
+            textoVacio.textContent = 'Sin resultados';
+
+            const subTexto = document.createElement('p');
+            subTexto.className = 'filter-no-results__sub';
+            subTexto.textContent = 'Ninguna tarea coincide con los filtros seleccionados.';
+
+            divVacio.append(iconoVacio, textoVacio, subTexto);
+            contenedorTareas.append(divVacio);
+        } else {
+            armarTareas(contenedorTareas, tareasFiltradas);
+        }
+
+        // Actualizar badge
+        actualizarBadge(tareasFiltradas.length);
+    }, 120);
+}
+
+/**
+ * Actualiza el badge de resultados con el conteo actual.
+ */
+function actualizarBadge(cantidad) {
+    const badge = document.getElementById('filterResultsBadge');
+    if (!badge) return;
+
+    const hayFiltroActivo = getFiltroEstado() !== 'all' || getFiltroUsuario() !== 'all';
+
+    if (hayFiltroActivo) {
+        badge.textContent = `${cantidad} tarea${cantidad !== 1 ? 's' : ''} encontrada${cantidad !== 1 ? 's' : ''}`;
+        badge.classList.add('filter-badge--active');
+    } else {
+        badge.textContent = `${cantidad} tarea${cantidad !== 1 ? 's' : ''} en total`;
+        badge.classList.remove('filter-badge--active');
+    }
+}
 
 // ==========================================
 // EVENTO 1: BUSCAR USUARIO
@@ -44,50 +116,91 @@ formularioBusqueda.addEventListener("submit", async (evento) => {
         return;
     }
 
-    // Delegamos la lógica al servicio
-    usuarioActual = await buscarYMostrarUsuario(idUsuario, domElements);
+    // Resetear filtros al buscar un usuario nuevo
+    resetearFiltros();
+
+    // Delegamos la lógica al servicio, pasando renderTareasFiltradas como fn de render
+    usuarioActual = await buscarYMostrarUsuario(idUsuario, domElements, renderTareasFiltradas);
+
+    // Si se encontró el usuario, construir el panel de filtros
+    if (usuarioActual) {
+        seccionFiltros.classList.remove("hidden");
+
+        // Armar el panel de filtros con el usuario actual
+        const { selectEstado, selectUsuario, btnLimpiar } = armarFiltros(contenedorFiltros, [usuarioActual]);
+
+        // Sincronizar los selects con los filtros actuales (por si ya había filtros)
+        selectEstado.value = getFiltroEstado();
+        selectUsuario.value = getFiltroUsuario();
+
+        // ---- Listener: Filtro por Estado ----
+        selectEstado.addEventListener('change', () => {
+            setFiltroEstado(selectEstado.value);
+            renderTareasFiltradas();
+        });
+
+        // ---- Listener: Filtro por Usuario ----
+        selectUsuario.addEventListener('change', () => {
+            setFiltroUsuario(selectUsuario.value);
+            renderTareasFiltradas();
+        });
+
+        // ---- Listener: Botón Limpiar Filtros ----
+        btnLimpiar.addEventListener('click', () => {
+            resetearFiltros();
+            selectEstado.value = 'all';
+            selectUsuario.value = 'all';
+            renderTareasFiltradas();
+        });
+    }
 });
 
 // ==========================================
 // EVENTO 2: AGREGAR NUEVA TAREA O EDITAR EXISTENTE
 // ==========================================
 formularioTarea.addEventListener("submit", async (evento) => {
-    evento.preventDefault(); // Evita que la página se recargue al enviar el formulario
+    evento.preventDefault();
 
-    // Verificamos que haya un usuario logueado antes de continuar
-    if (usuarioActual === null) {
-        return; // Si no hay usuario, no hacemos nada
-    }
+    if (usuarioActual === null) return;
 
-    // Extraemos los valores de los campos del formulario
     const titulo = document.getElementById("taskTitle").value;
     const descripcion = document.getElementById("taskBody").value;
     const estadoSeleccionado = document.getElementById("taskCompleted").value;
 
-    // Convertimos el string del select a booleano
-    let estaCompletada = (estadoSeleccionado === "true");
+    // Mapear el valor del select al status interno
+    let statusInterno;
+    let estaCompletada;
+    if (estadoSeleccionado === 'true') {
+        statusInterno = 'completed';
+        estaCompletada = true;
+    } else if (estadoSeleccionado === 'in-progress') {
+        statusInterno = 'in-progress';
+        estaCompletada = false;
+    } else {
+        statusInterno = 'pending';
+        estaCompletada = false;
+    }
 
-    // Validación: el título es obligatorio
     if (titulo === "") {
         alert("El título es obligatorio");
         return;
     }
 
-    // VERIFICAMOS EN QUÉ MODO ESTAMOS (CREAR O EDITAR)
     if (modoEdicion) {
         // ==================== MODO EDICIÓN ====================
         const datosActualizados = {
             title: titulo,
             body: descripcion,
-            completed: estaCompletada
+            completed: estaCompletada,
+            status: statusInterno
         };
 
         const helpers = {
             actualizarTarjetaEnDOM,
-            resetearFormularioAModoCrear
+            resetearFormularioAModoCrear,
+            renderFn: renderTareasFiltradas
         };
 
-        // Delegar lógica de actualización
         await procesarActualizacionTarea(tareaActualId, datosActualizados, helpers);
 
     } else {
@@ -96,11 +209,11 @@ formularioTarea.addEventListener("submit", async (evento) => {
             title: titulo,
             body: descripcion,
             completed: estaCompletada,
+            status: statusInterno,
             userId: usuarioActual.id
         };
 
-        // Delegar lógica de creación
-        await procesarCreacionTarea(nuevaTarea, contenedorTareas, formularioTarea);
+        await procesarCreacionTarea(nuevaTarea, contenedorTareas, formularioTarea, renderTareasFiltradas);
     }
 });
 
@@ -116,35 +229,33 @@ contenedorTareas.addEventListener("click", async (evento) => {
     // -------- ELIMINAR --------
     if (evento.target.classList.contains("btn-eliminar-tarea")) {
         const tarjeta = evento.target.closest(".message-card");
-        await procesarEliminacionTarea(idTarea, tarjeta);
+        await procesarEliminacionTarea(idTarea, tarjeta, renderTareasFiltradas);
     }
 
     // -------- EDITAR --------
     if (evento.target.classList.contains("btn-editar-tarea")) {
-        // PASO 1: Obtener referencia a la tarjeta completa donde se hizo clic
         const tarjeta = evento.target.closest(".message-card");
 
-        // PASO 2: Extraer datos visuales actuales de la tarea
         const tituloActual = tarjeta.querySelector(".message-author").textContent;
         const descripcionActual = tarjeta.querySelector(".message-text").textContent;
-        const spanEstado = tarjeta.querySelector(".status-completed, .status-pending");
-        const estadoActual = spanEstado.classList.contains("status-completed");
+        const spanEstado = tarjeta.querySelector(".status-completed, .status-pending, .status-in-progress");
+
+        // Determinar estado actual desde el data-status de la tarjeta
+        const statusActual = tarjeta.getAttribute('data-status') || 'pending';
+        const estaCompletada = statusActual === 'completed';
 
         const tareaActual = {
             id: idTarea,
             title: tituloActual,
             body: descripcionActual === 'Sin descripción disponible' ? '' : descripcionActual,
-            completed: estadoActual
+            completed: estaCompletada,
+            status: statusActual
         };
 
-        // Activar el modo edición
         modoEdicion = true;
         tareaActualId = idTarea;
 
-        // Llenar el formulario con los datos extraídos
         llenarFormularioConTarea(tareaActual);
-
-        // Hacer scroll suave hacia el formulario
         document.getElementById("taskFormSection").scrollIntoView({ behavior: 'smooth' });
     }
 });
@@ -154,18 +265,29 @@ contenedorTareas.addEventListener("click", async (evento) => {
 // ==========================================
 
 /**
- * Llena el formulario con los datos de una tarea existente para editar
+ * Llena el formulario con los datos de una tarea existente para editar.
  */
 function llenarFormularioConTarea(tarea) {
     document.getElementById("taskTitle").value = tarea.title;
     document.getElementById("taskBody").value = tarea.body || '';
-    document.getElementById("taskCompleted").value = tarea.completed ? 'true' : 'false';
+
+    // Mapear el status al valor del select
+    let valorSelect;
+    if (tarea.status === 'completed' || tarea.completed) {
+        valorSelect = 'true';
+    } else if (tarea.status === 'in-progress') {
+        valorSelect = 'in-progress';
+    } else {
+        valorSelect = 'false';
+    }
+    document.getElementById("taskCompleted").value = valorSelect;
+
     document.querySelector("#taskFormSection .card__title").textContent = "Editar Tarea";
     document.getElementById("addTaskBtn").querySelector(".btn__text").textContent = "Actualizar Tarea";
 }
 
 /**
- * Actualiza una tarjeta específica en el DOM
+ * Actualiza una tarjeta específica en el DOM (para el modo edición en vivo).
  */
 function actualizarTarjetaEnDOM(tareaId, tareaActualizada) {
     const tarjeta = document.querySelector(`[data-id="${tareaId}"]`).closest(".message-card");
@@ -175,21 +297,29 @@ function actualizarTarjetaEnDOM(tareaId, tareaActualizada) {
         const parrafoDescripcion = tarjeta.querySelector(".message-text");
         parrafoDescripcion.textContent = tareaActualizada.body || 'Sin descripción disponible';
 
-        const spanEstado = tarjeta.querySelector(".status-completed, .status-pending");
-        if (tareaActualizada.completed) {
+        const spanEstado = tarjeta.querySelector(".status-completed, .status-pending, .status-in-progress");
+        const statusReal = tareaActualizada.status || (tareaActualizada.completed ? 'completed' : 'pending');
+
+        tarjeta.setAttribute('data-status', statusReal);
+
+        if (statusReal === 'completed') {
             spanEstado.className = 'status-completed';
-            spanEstado.textContent = 'Completada';
+            spanEstado.textContent = '✅ Completada';
             spanEstado.style.color = 'green';
+        } else if (statusReal === 'in-progress') {
+            spanEstado.className = 'status-in-progress';
+            spanEstado.textContent = '⚡ En proceso';
+            spanEstado.style.color = '';
         } else {
             spanEstado.className = 'status-pending';
-            spanEstado.textContent = 'Pendiente';
+            spanEstado.textContent = '🕐 Pendiente';
             spanEstado.style.color = 'orange';
         }
     }
 }
 
 /**
- * Resetea el formulario al modo de creación
+ * Resetea el formulario al modo de creación.
  */
 function resetearFormularioAModoCrear() {
     modoEdicion = false;
@@ -208,9 +338,11 @@ function ocultarSecciones() {
     seccionInfoUsuario.classList.add("hidden");
     seccionFormularioTarea.classList.add("hidden");
     seccionListaTareas.classList.add("hidden");
+    seccionFiltros.classList.add("hidden");
 
     contenedorInfoUsuario.innerHTML = "";
     contenedorTareas.innerHTML = "";
+    contenedorFiltros.innerHTML = "";
 
     usuarioActual = null;
 }
