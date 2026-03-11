@@ -1,4 +1,8 @@
 export { getUserById } from './usuarios/getUserById.js';
+export { getAllUsers } from './usuarios/getAllUsers.js';
+export { createUsuario } from './usuarios/createUsuario.js';
+export { updateUsuario } from './usuarios/updateUsuario.js';
+export { deleteUsuario } from './usuarios/deleteUsuario.js';
 export { getTareasByUserId } from './tareas/getTareasByUserId.js';
 export { createTarea } from './tareas/createTarea.js';
 export { deleteTarea } from './tareas/deleteTarea.js';

@@ -1,12 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menú Principal</title>
+    <title>Gestión de Tareas — Menú Principal</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-    <header></header>
-    <main></main>
+    <div class="home-wrapper">
+
+        <div class="home-logo">📋</div>
+        <h1 class="home-title">Gestión de Tareas</h1>
+        <p class="home-subtitle">SENA — Desarrollo Web | Selecciona un módulo para continuar</p>
+
+        <nav class="home-cards">
+            <!-- Panel Admin -->
+            <a href="view/admin/index.html" class="home-card home-card--admin">
+                <div class="home-card__icon">🛡️</div>
+                <p class="home-card__title">Panel Admin</p>
+                <p class="home-card__desc">Registra, consulta, actualiza y elimina usuarios del sistema.</p>
+            </a>
+
+            <!-- Vista Usuario -->
+            <a href="view/usuario/index.html" class="home-card home-card--user">
+                <div class="home-card__icon">👤</div>
+                <p class="home-card__title">Vista Usuario</p>
+                <p class="home-card__desc">Consulta y gestiona las tareas asignadas a un usuario.</p>
+            </a>
+        </nav>
+
+        <p class="home-footer">Ejercicio de manipulación del DOM · JSONPlaceholder API</p>
+    </div>
 </body>
+
 </html>

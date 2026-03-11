@@ -7,8 +7,16 @@
 import { cargarTareasDelUsuario, procesarActualizacionTarea, setFiltroEstado, obtenerTareasFiltradas, resetearFiltros, obtenerTodasLasTareas } from "../../services/index.js";
 import { armarTareasUsuario, notificarExito, notificarError } from "../../ui/index.js";
 
-// Decidimos trabajar con el usuario número 1 por ahora
-const USUARIO_ID_ACTUAL = 1;
+// Variable para guardar el usuario actual tras la búsqueda
+let usuarioActualId = null;
+
+// Referencias para la búsqueda de usuario y la cabecera
+const searchInput = document.getElementById("searchUserId");
+const searchBtn = document.getElementById("btnSearchUser");
+const searchError = document.getElementById("searchUserError");
+const welcomeTitle = document.getElementById("welcomeTitle");
+const welcomeSubtitle = document.getElementById("welcomeSubtitle");
+const userAvatar = document.getElementById("userAvatar");
 
 // Guardamos en variables los lugares de la página que vamos a cambiar
 const contenedorTareas = document.getElementById("task-container");
@@ -119,16 +127,69 @@ async function handleStatusChange(idTarea, nuevoEstado) {
 }
 
 /**
+ * Esta función busca al usuario por ID y luego carga sus tareas.
+ */
+async function manejarBusquedaUsuario() {
+    const id = parseInt(searchInput.value);
+    if (!id || isNaN(id)) {
+        searchError.style.display = "block";
+        searchError.textContent = "Ingrese un ID válido.";
+        return;
+    }
+
+    // Estado de carga inicial
+    searchError.style.display = "none";
+    welcomeTitle.textContent = "Buscando...";
+    welcomeSubtitle.textContent = "Por favor espera.";
+    contenedorTareas.innerHTML = '<p class="loading-text" style="text-align:center; padding: 2rem; color: #6b7280;">Cargando...</p>';
+
+    try {
+        const respuesta = await fetch(`https://jsonplaceholder.typicode.com/users/${id}`);
+        if (!respuesta.ok) throw new Error("No encontrado");
+
+        const usuario = await respuesta.json();
+        usuarioActualId = usuario.id;
+
+        // Actualizamos cabecera dinámica
+        welcomeTitle.textContent = `¡Hola, ${usuario.name.split(' ')[0]}! 👋`;
+        welcomeSubtitle.textContent = `Aquí tienes un resumen de tus cosas, ${usuario.username}.`;
+        userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(usuario.name)}&background=4f46e5&color=fff`;
+
+        // Limpiamos los filtros y marcamos el primero ("Todas") como activo
+        resetearFiltros();
+        filtroBotones.forEach(b => b.classList.remove("active"));
+        if (filtroBotones[0]) filtroBotones[0].classList.add("active");
+
+        // Cargamos las tareas dinámicamente
+        await cargarTareasDelUsuario(usuarioActualId, contenedorTareas, renderUserTasks);
+
+    } catch (error) {
+        searchError.style.display = "block";
+        searchError.textContent = "Usuario no encontrado en el sistema.";
+        welcomeTitle.textContent = "¡Hola, Usuario! 👋";
+        welcomeSubtitle.textContent = "Busca tu ID para ver tus tareas.";
+        contenedorTareas.innerHTML = ''; // Limpiamos las tareas
+
+        statTotales.textContent = "0";
+        statProgreso.textContent = "0";
+        statCompletas.textContent = "0";
+    }
+}
+
+/**
  * Función que arranca todo cuando abres la página.
  */
 async function init() {
     console.log("Cargando el panel del usuario...");
 
-    // Limpiamos los filtros para empezar de cero
-    resetearFiltros();
+    // Configuramos los eventos de búsqueda
+    searchBtn.addEventListener("click", manejarBusquedaUsuario);
+    searchInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") manejarBusquedaUsuario();
+    });
 
-    // Cargamos las tareas desde internet (usando el servidor)
-    await cargarTareasDelUsuario(USUARIO_ID_ACTUAL, contenedorTareas, renderUserTasks);
+    // Limpiamos la pantalla inicial
+    contenedorTareas.innerHTML = '<p class="loading-text" style="text-align:center; padding: 2rem; color: #6b7280;">Busca tu ID de usuario en el panel izquierdo.</p>';
 
     // Configuramos qué pasa cuando haces clic en los botones de "Pendientes", "Hechas", etc.
     filtroBotones.forEach(btn => {
